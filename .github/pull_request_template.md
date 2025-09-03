@@ -1,48 +1,32 @@
-\# 🚀 \*\*Pull Request\*\* - RPA de Banco de Dados
+# 🚀 **Pull Request** - RPA de Banco de Dados
 
-
-
-\## 📄 Objetivo
-
-\- Escreva de forma clara e resumida o que este PR deve alterar.
+## 📄 Objetivo
+Este PR tem como objetivo adicionar a função que vai conectar o banco do primeiro ano com o do segundo ano.
+P.S - No final do código temos um teste.
 
 ---
 
+## 🔄 Processo Atendido
+- [X] **1.**  Conectar os bancos;
 
+- [ ] **2.** Coletar todas as informações atualizadas do banco do primeiro ano;
 
-\## 🔄 Processo Atendido
+- [ ] **3.** Tratar e normalizar os dados coletados (apenas dados relevantes);
 
-\- \[ ] \*\*1.\*\* Conectar os bancos;
-
-\- \[ ] \*\*2.\*\* Coletar todas as informações atualizadas do banco do primeiro ano;
-
-\- \[ ] \*\*3.\*\* Tratar e normalizar os dados coletados (apenas dados relevantes);
-
-\- \[ ] \*\*4.\*\* Inserir os novos dados no banco do segundo ano.
-
-
+- [ ] **4.** Inserir os novos dados no banco do segundo ano.
 
 ---
 
+## ✅ Checklist de Qualidade
+- \[X] **Código revisado:** seguir boas práticas e padrões definidos pelo time;
 
+- \[X] **Tratamento de exceções:** tratar qualquer possível erro;
 
-\## ✅ Checklist de Qualidade
+- \[X] **Validação:** verificar se a entrada e inserção de dados foi feita corretamente ;
 
-\- \[ ] \*\*Código revisado:\*\* seguir boas práticas e padrões definidos pelo time;
-
-\- \[ ] \*\*Tratamento de exceções:\*\* tratar qualquer possível erro;
-
-\- \[ ] \*\*Validação:\*\* verificar se a entrada e inserção de dados foi feita corretamente ;
-
-\- \[ ] \*\*Testes realizados:\*\* para validação do código, foram feitos testes;
-
-
+- \[X] **Testes realizados:** para validação do código, foram feitos testes;
 
 ---
 
-
-
-\## 💡 Links
-
-Adicione os links utilizados para a execução desse projeto.
-
+## 💡 Links
+Nenhum link utilizado.
