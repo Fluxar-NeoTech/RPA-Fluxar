@@ -2,6 +2,7 @@ import psycopg2
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import pandas as pd
 
 
 load_dotenv()
@@ -21,7 +22,15 @@ def conectar_banco(serie):
         print("Erro ao conectar ao banco:", e)
         exit()
 
-        
-conectar_banco("PRIMEIRO")
-# Criar um cursor
-# cur = conectar_banco.cursor()
+def consultar_dados(serie, query):
+    # Abrindo a conexão com o banco de dados 
+    conn = conectar_banco(serie)
+    # 
+    try:
+        df = pd.read_sql(query, conn)
+        return df
+    except Exception as e:
+        print("Erro ao consultar dados:", e)
+        return None
+    finally:   
+        conn.close()
