@@ -10,7 +10,7 @@ load_dotenv()
 def conectar_banco(serie):
     try:
         conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"), 
+            host=os.getenv(f"DB_HOST_{serie.upper()}"), 
             dbname=os.getenv(f"DB_NAME_{serie.upper()}"),
             user=os.getenv("DB_USER"),
             password=os.getenv("DB_PASSWORD"),

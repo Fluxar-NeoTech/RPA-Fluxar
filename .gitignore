@@ -1,2 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pdm.toml
+*.pdm.lock
+
 .env
-test.ipynb
+
+# Editor / IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Docker
+*.log
+*.pid
+docker-compose.override.yml
+
+# Banco de dados / dados temporários
+db_data/
+db_data_segundo/
+*.sqlite
+*.db
+
+# Logs e cache
+*.log
+*.tmp
+.cache/

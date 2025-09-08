@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db_primeiro:
+    image: postgres:15
+    container_name: db_primeiro
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME_PRIMEIRO}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  db_segundo:
+    image: postgres:15
+    container_name: db_segundo
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME_SEGUNDO}
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data_segundo:/var/lib/postgresql/data
+
+  app:
+    build: .
+    container_name: fluxar_app
+    restart: on-failure
+    depends_on:
+      - db_primeiro
+      - db_segundo
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    command: python app/main.py
+
+volumes:
+  db_data:
+  db_data_segundo:
