@@ -1,9 +1,8 @@
-import psycopg2
 import pandas as pd
 from dotenv import load_dotenv
-import os
 from transforms.funcionario import transformar_dados_funcionario
 from transforms.industria import transformar_dados_industria
+from transforms.setor import transformar_dados_setor
 from utils.db import conectar_banco
 
 load_dotenv()
@@ -18,12 +17,17 @@ def main():
     query_industria = "SELECT id, nome, cnpj, email, data_cadastro FROM industria;"
     df_origem_industria = pd.read_sql(query_industria, conn_origem)
 
+    query_setor = "SELECT id,nome FROM setor;"
+    df_origem_setor = pd.read_sql(query_setor, conn_origem)
+
     df_destino_funcionario = pd.DataFrame(columns=['id','nome','sobrenome','email','senha','cargo','setor_id','unidade_id'])
     df_destino_industria = pd.DataFrame(columns=['id','nome','cnpj','email','data_cadastro'])
-
+    df_destino_setor = pd.DataFrame(columns=['id','nome'])
 
     df_transformado_funcionario = transformar_dados_funcionario(df_origem_funcionario, df_destino_funcionario)
     df_transformado_industria = transformar_dados_industria(df_origem_industria, df_destino_industria)
+    df_transformado_setor = transformar_dados_setor(df_origem_setor,df_destino_setor)
+    
     
     cursor = conn_destino.cursor()
 
@@ -88,13 +92,28 @@ def main():
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
 
+    try:
+        insert_sql_setor = """
+        INSERT INTO  setor (id,nome)
+        VALUES (%s,%s)
+        ON CONFLICT (id) DO UPDATE
+            SET nome = EXCLUDED.nome;
+    """
+        
+        for _, row in df_transformado_setor.iterrows():
+            cursor.execute(insert_sql_industria, (
+                row['id'],
+                row['nome']
+            ))
+
+        conn_destino.commit()
+
+        print("Setor OK")
+
     finally:
         cursor.close()
         conn_origem.close()
         conn_destino.close()
-        print("Industria OK")
-
     
 if __name__ == "__main__":
     main()
-    
