@@ -3,9 +3,9 @@ import pandas as pd
 def transformar_dados_funcionario(df_origem, df_destino):
     "Essa função irá receber o dataframe do banco de dados do primeiro e transformar os dados para o banco de dados do segundo"
 
-    cargos_variacoes = ['Gestor', 'gestor', 'GESTOR', 'g', 'G', 'Gestor de Estoque', 'gestor de estoque', 'GESTOR DE ESTOQUE', 'a', 'A', 'Analista', 'analista', 'ANALISTA', 'Analista de Sistemas', 'analista de sistemas', 'ANALISTA DE SISTEMAS']
-
     #Tranformações dos dados
+    df_destino['id'] = df_origem['id'].astype(int)
+    
     df_destino['nome'] = df_origem['nome'].astype(str).str.capitalize()
 
     df_destino['sobrenome'] = df_origem['sobrenome'].astype(str).str.capitalize()
@@ -14,13 +14,24 @@ def transformar_dados_funcionario(df_origem, df_destino):
 
     df_destino['senha'] = df_origem['senha'].astype(str).str.lower()
 
+    cargos_g = [
+        'Gestor', 'gestor', 'GESTOR', 'g', 'G', 'Gestor de Estoque', 'gestor de estoque', 'GESTOR DE ESTOQUE'
+    ]
+
+    cargos_a = [
+        'a', 'A', 'Analista', 'analista', 'ANALISTA', 'Analista de Sistemas', 'analista de sistemas', 'ANALISTA DE SISTEMAS'
+    ]
+
     def corrigir_cargo(cargo):
-        if cargo in cargos_variacoes[:7]:
-            return 'G'
-        elif cargo in cargos_variacoes[7:]:
-            return 'A'
-        else:
-            return None
+        """Converte qualquer variação em 'G' ou 'A'"""
+        texto = str(cargo).strip().lower()
+
+        # procura o texto em cada item das listas
+        if any(texto == item or texto in item for item in cargos_g):
+            return "G"
+
+        if any(texto == item or texto in item for item in cargos_a):
+            return "A"
 
     df_destino['cargo'] = df_origem['cargo'].apply(corrigir_cargo)
 
