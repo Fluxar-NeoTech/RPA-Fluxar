@@ -3,6 +3,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 from transforms.funcionario import transformar_dados_funcionario
+from transforms.industria import transformar_dados_industria
 from utils.db import conectar_banco
 
 load_dotenv()
@@ -11,23 +12,38 @@ def main():
     conn_origem = conectar_banco("primeiro")
     conn_destino = conectar_banco("segundo")
 
-    query = "SELECT id, nome, sobrenome, email, senha, cargo, setor_id, unidade_id FROM funcionario;"
-    df_origem = pd.read_sql(query, conn_origem)
+    query_funcionario = "SELECT id, nome, sobrenome, email, senha, cargo, setor_id, unidade_id FROM funcionario;"
+    df_origem_funcionario = pd.read_sql(query_funcionario, conn_origem)
 
-    df_destino = pd.DataFrame(columns=['id','nome','sobrenome','email','senha','cargo','setor_id','unidade_id'])
+    query_industria = "SELECT id, nome, cnpj, email, data_cadastro FROM industria;"
+    df_origem_industria = pd.read_sql(query_industria, conn_origem)
 
-    df_transformado = transformar_dados_funcionario(df_origem, df_destino)
+    df_destino_funcionario = pd.DataFrame(columns=['id','nome','sobrenome','email','senha','cargo','setor_id','unidade_id'])
+    df_destino_industria = pd.DataFrame(columns=['id','nome','cnpj','email','data_cadastro'])
+
+
+    df_transformado_funcionario = transformar_dados_funcionario(df_origem_funcionario, df_destino_funcionario)
+    df_transformado_industria = transformar_dados_industria(df_origem_industria, df_destino_industria)
+    
+    cursor = conn_destino.cursor()
 
     try:
-        cursor = conn_destino.cursor()
 
-        insert_sql = """
+        insert_sql_funcionario = """
             INSERT INTO funcionario (id, nome, sobrenome, email, senha, cargo, setor_id, unidade_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE
+            SET nome = EXCLUDED.nome,
+                sobrenome = EXCLUDED.sobrenome,
+                email = EXCLUDED.email,
+                senha = EXCLUDED.senha,
+                cargo = EXCLUDED.cargo,
+                setor_id = EXCLUDED.setor_id,
+                unidade_id = EXCLUDED.unidade_id;
         """
 
-        for _, row in df_transformado.iterrows():
-            cursor.execute(insert_sql, (
+        for _, row in df_transformado_funcionario.iterrows():
+            cursor.execute(insert_sql_funcionario, (
                 row['id'],
                 row['nome'],
                 row['sobrenome'],
@@ -38,14 +54,46 @@ def main():
                 row['unidade_id']
             ))
 
+            print("Funcionário OK")
+
         conn_destino.commit()
     except Exception as e:
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
+
+    try:
+        insert_sql_industria = """
+            INSERT INTO industria (id, nome, cnpj, email, data_cadastro)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE
+            SET nome = EXCLUDED.nome,
+                cnpj = EXCLUDED.cnpj,
+                email = EXCLUDED.email,
+                data_cadastro = EXCLUDED.data_cadastro;
+        """
+
+        for _, row in df_transformado_industria.iterrows():
+            cursor.execute(insert_sql_industria, (
+                row['id'],
+                row['nome'],
+                row['cnpj'],
+                row['email'],
+                row['data_cadastro']
+            ))
+
+        conn_destino.commit()
+
+        print("Industria OK")
+    except Exception as e:
+        print("Erro ao inserir dados no banco de destino:", e)
+        conn_destino.rollback()
+
     finally:
         cursor.close()
         conn_origem.close()
         conn_destino.close()
+        print("Industria OK")
+
     
 if __name__ == "__main__":
     main()
