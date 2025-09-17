@@ -3,14 +3,22 @@ from dotenv import load_dotenv
 from transforms.funcionario import transformar_dados_funcionario
 from transforms.industria import transformar_dados_industria
 from transforms.setor import transformar_dados_setor
+from transforms.planos import transformar_dados_planos
 from utils.db import conectar_banco
 
 load_dotenv()
 
 def main():
+
+    #-----------------------------------#
+    #           CONEXÃO PADRÃO          #
+    #-----------------------------------#
     conn_origem = conectar_banco("primeiro")
     conn_destino = conectar_banco("segundo")
 
+    #-----------------------------------#
+    #   DF_ORIGEM ( para cada tabela)   #
+    #-----------------------------------#
     query_funcionario = "SELECT id, nome, sobrenome, email, senha, cargo, setor_id, unidade_id FROM funcionario;"
     df_origem_funcionario = pd.read_sql(query_funcionario, conn_origem)
 
@@ -20,17 +28,35 @@ def main():
     query_setor = "SELECT id,nome FROM setor;"
     df_origem_setor = pd.read_sql(query_setor, conn_origem)
 
+    query_plano = "SELECT id,nome,preco FROM plano;"
+    df_origem_plano = pd.read_sql(query_plano, conn_origem)
+
+    #-----------------------------------#
+    #   DF_DESTINO ( para cada tabela)  #
+    #-----------------------------------#
     df_destino_funcionario = pd.DataFrame(columns=['id','nome','sobrenome','email','senha','cargo','setor_id','unidade_id'])
+
     df_destino_industria = pd.DataFrame(columns=['id','nome','cnpj','email','data_cadastro'])
+
     df_destino_setor = pd.DataFrame(columns=['id','nome'])
 
+    df_destino_plano = pd.DataFrame(columns=['id','nome','preco'])
+
+    #-------------------------------------#
+    # DF_TRASNFORMADO ( para cada tabela) #
+    #-------------------------------------#
     df_transformado_funcionario = transformar_dados_funcionario(df_origem_funcionario, df_destino_funcionario)
+
     df_transformado_industria = transformar_dados_industria(df_origem_industria, df_destino_industria)
+
     df_transformado_setor = transformar_dados_setor(df_origem_setor,df_destino_setor)
+
+    df_transformado_plano = transformar_dados_planos(df_origem_plano,df_destino_plano)
     
     
     cursor = conn_destino.cursor()
 
+    # Tratando exeções de Funcionário
     try:
 
         insert_sql_funcionario = """
@@ -65,6 +91,7 @@ def main():
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
 
+    # Tratando exeções de Industria 
     try:
         insert_sql_industria = """
             INSERT INTO industria (id, nome, cnpj, email, data_cadastro)
@@ -92,16 +119,17 @@ def main():
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
 
+    # Tratando exeções de Setor
     try:
         insert_sql_setor = """
         INSERT INTO  setor (id,nome)
         VALUES (%s,%s)
         ON CONFLICT (id) DO UPDATE
             SET nome = EXCLUDED.nome;
-    """
+        """
         
         for _, row in df_transformado_setor.iterrows():
-            cursor.execute(insert_sql_industria, (
+            cursor.execute(insert_sql_setor, (
                 row['id'],
                 row['nome']
             ))
@@ -109,6 +137,35 @@ def main():
         conn_destino.commit()
 
         print("Setor OK")
+    except Exception as e:
+        print("Erro ao inserir dados no banco de destino:", e)
+        conn_destino.rollback()
+
+    # Tratando exeções Plano
+    try:
+        insert_sql_plano = """
+        INSERT INTO plano(id,nome,preco)
+        VALUES (%s,%s,%s)
+        ON CONFLIT (id) do UPDATE
+            SET nome = EXCLUDE.nome,
+            preco = EXCLUDE.preco;
+        """
+
+        for _,row in df_transformado_plano.interrows():
+            cursor.execute(insert_sql_plano,(
+                row['id'],
+                row['nome'],
+                row['preco'],
+            ))
+        
+        conn_destino.commit()
+
+        print("Plano OK")
+    except Exception as e:
+        print("Erro ao inserir dados no banco de destino:", e)
+        conn_destino.rollback()
+
+
 
     finally:
         cursor.close()
