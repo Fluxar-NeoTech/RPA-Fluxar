@@ -5,6 +5,7 @@ from transforms.industria import transformar_dados_industria
 from transforms.setor import transformar_dados_setor
 from transforms.planos import transformar_dados_planos
 from utils.db import conectar_banco
+from transforms.unidade import transformar_dados_unidade
 
 load_dotenv()
 
@@ -31,6 +32,12 @@ def main():
     query_plano = "SELECT id,nome,preco FROM plano;"
     df_origem_plano = pd.read_sql(query_plano, conn_origem)
 
+    query_unidade = "SELECT id, nome, empresa_id, id_endereco FROM unidade;"
+    df_origem_unidade = pd.read_sql(query_unidade, conn_origem)
+
+    query_endereco = "SELECT id, cep, numero FROM endereco;"
+    df_origem_endereco = pd.read_sql(query_endereco, conn_origem)
+
     #-----------------------------------#
     #   DF_DESTINO ( para cada tabela)  #
     #-----------------------------------#
@@ -40,7 +47,9 @@ def main():
 
     df_destino_setor = pd.DataFrame(columns=['id','nome'])
 
-    df_destino_plano = pd.DataFrame(columns=['id','nome','preco'])
+    df_destino_plano = pd.DataFrame(columns=['id','nome','preco','duracao_meses'])
+
+    df_destino_unidade = pd.DataFrame(columns=['id','nome','cep','rua','bairro','cidade','estado','numero','industria_id'])
 
     #-------------------------------------#
     # DF_TRASNFORMADO ( para cada tabela) #
@@ -52,8 +61,9 @@ def main():
     df_transformado_setor = transformar_dados_setor(df_origem_setor,df_destino_setor)
 
     df_transformado_plano = transformar_dados_planos(df_origem_plano,df_destino_plano)
-    
-    
+
+    df_transformado_unidade = transformar_dados_unidade(df_origem_unidade,df_origem_endereco,df_destino_unidade)
+
     cursor = conn_destino.cursor()
 
     # Tratando exeções de Funcionário
@@ -141,31 +151,67 @@ def main():
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
 
-    # Tratando exeções Plano
+# Tratando exceções Plano
     try:
         insert_sql_plano = """
-        INSERT INTO plano(id,nome,preco)
-        VALUES (%s,%s,%s)
-        ON CONFLIT (id) do UPDATE
-            SET nome = EXCLUDE.nome,
-            preco = EXCLUDE.preco;
+        INSERT INTO plano (id, nome, preco, duracao_meses)
+        VALUES (%s, %s, %s,%s)
+        ON CONFLICT (id) DO UPDATE
+        SET nome = EXCLUDED.nome,
+            preco = EXCLUDED.preco,
+            duracao_meses = EXCLUDED.duracao_meses;
         """
 
-        for _,row in df_transformado_plano.interrows():
-            cursor.execute(insert_sql_plano,(
+        for _, row in df_transformado_plano.iterrows():
+            cursor.execute(insert_sql_plano, (
                 row['id'],
                 row['nome'],
                 row['preco'],
+                row['duracao_meses']
             ))
-        
-        conn_destino.commit()
 
+        conn_destino.commit()
         print("Plano OK")
+
     except Exception as e:
         print("Erro ao inserir dados no banco de destino:", e)
         conn_destino.rollback()
 
+# Tratando exceções Unidade
+    try:
+        insert_sql_unidade = """
+        INSERT INTO unidade (id, nome, cep, rua, bairro, cidade, estado, numero, industria_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ON CONFLICT (id) DO UPDATE
+        SET nome = EXCLUDED.nome,
+            cep = EXCLUDED.cep,
+            rua = EXCLUDED.rua,
+            bairro = EXCLUDED.bairro,
+            cidade = EXCLUDED.cidade,
+            estado = EXCLUDED.estado,
+            numero = EXCLUDED.numero,
+            industria_id = EXCLUDED.industria_id;
+        """
 
+        for _, row in df_transformado_unidade.iterrows():
+            cursor.execute(insert_sql_unidade, (
+                row['id'],
+                row['nome'],
+                row['cep'],
+                row['rua'],
+                row['bairro'],
+                row['cidade'],
+                row['estado'],
+                row['numero'],
+                row['industria_id']
+            ))
+
+        conn_destino.commit()
+        print("Unidades OK")
+
+    except Exception as e:
+        print("Erro ao inserir unidades no banco de destino:", e)
+        conn_destino.rollback()
 
     finally:
         cursor.close()

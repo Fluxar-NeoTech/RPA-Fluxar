@@ -14,3 +14,5 @@ def transformar_dados_industria(df_origem, df_destino) -> pd.DataFrame:
     df_destino["data_cadastro"] = pd.to_datetime(df_origem["data_cadastro"], errors="coerce")
 
     return df_destino[['id','nome','cnpj','email','data_cadastro']]
+
+# data_cadastro
