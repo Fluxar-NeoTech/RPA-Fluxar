@@ -49,7 +49,7 @@ def main():
 
     df_destino_industria = pd.DataFrame(columns=['id','nome','cnpj','email','data_cadastro'])
 
-    df_destino_setor = pd.DataFrame(columns=['id','nome'])
+    df_destino_setor = pd.DataFrame(columns=['id','nome','descricao'])
 
     df_destino_plano = pd.DataFrame(columns=['id','nome','preco','duracao_meses'])
 
@@ -140,16 +140,18 @@ def main():
     # Tratando exeções de Setor
     try:
         insert_sql_setor = """
-        INSERT INTO  setor (id,nome)
-        VALUES (%s,%s)
+        INSERT INTO  setor (id,nome,descricao)
+        VALUES (%s,%s,%s)
         ON CONFLICT (id) DO UPDATE
-            SET nome = EXCLUDED.nome;
+            SET nome = EXCLUDED.nome,
+                descricao = EXCLUDED.descricao;
         """
         
         for _, row in df_transformado_setor.iterrows():
             cursor.execute(insert_sql_setor, (
                 row['id'],
-                row['nome']
+                row['nome'],
+                row['descricao']
             ))
 
         conn_destino.commit()
