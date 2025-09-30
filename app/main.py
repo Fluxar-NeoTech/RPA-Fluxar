@@ -6,6 +6,7 @@ from transforms.setor import transformar_dados_setor
 from transforms.planos import transformar_dados_planos
 from utils.db import conectar_banco
 from transforms.unidade import transformar_dados_unidade
+from transforms.assinatura import transformar_dados_assinatura
 
 load_dotenv()
 
@@ -38,6 +39,9 @@ def main():
     query_endereco = "SELECT id, cep, numero FROM endereco;"
     df_origem_endereco = pd.read_sql(query_endereco, conn_origem)
 
+    query_assinatura = "SELECT id, id_empresa, id_plano, dt_inicio, dt_fim, status FROM assinatura;"
+    df_origem_assinatura = pd.read_sql(query_assinatura, conn_origem)
+
     #-----------------------------------#
     #   DF_DESTINO ( para cada tabela)  #
     #-----------------------------------#
@@ -51,6 +55,8 @@ def main():
 
     df_destino_unidade = pd.DataFrame(columns=['id','nome','cep','rua','bairro','cidade','estado','numero','industria_id'])
 
+    df_destino_assinatura = pd.DataFrame(columns=['id','industria_id','plano_id','data_inicio','data_fim','status'])
+
     #-------------------------------------#
     # DF_TRASNFORMADO ( para cada tabela) #
     #-------------------------------------#
@@ -63,6 +69,8 @@ def main():
     df_transformado_plano = transformar_dados_planos(df_origem_plano,df_destino_plano)
 
     df_transformado_unidade = transformar_dados_unidade(df_origem_unidade,df_origem_endereco,df_destino_unidade)
+
+    df_transformado_assinatura = transformar_dados_assinatura(df_origem_assinatura,df_destino_assinatura)
 
     cursor = conn_destino.cursor()
 
@@ -211,6 +219,35 @@ def main():
 
     except Exception as e:
         print("Erro ao inserir unidades no banco de destino:", e)
+        conn_destino.rollback()
+
+    try:
+        insert_sql_assinatura = """
+        INSERT INTO assinatura (id, industria_id, plano_id, data_inicio, data_fim, status)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (id) DO UPDATE
+        SET industria_id = EXCLUDED.industria_id,
+            plano_id = EXCLUDED.plano_id,
+            data_inicio = EXCLUDED.data_inicio,
+            data_fim = EXCLUDED.data_fim,
+            status = EXCLUDED.status;
+        """
+
+        for _, row in df_transformado_assinatura.iterrows():
+            cursor.execute(insert_sql_assinatura, (
+                row['id'],
+                row['industria_id'],
+                row['plano_id'],
+                row['data_inicio'],
+                row['data_fim'],
+                row['status']
+            ))
+
+        conn_destino.commit()
+        print("Assinaturas OK")
+
+    except Exception as e:
+        print("Erro ao inserir assinaturas no banco de destino:", e)
         conn_destino.rollback()
 
     finally:
