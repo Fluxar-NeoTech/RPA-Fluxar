@@ -42,3 +42,4 @@ def transformar_dados_funcionario(df_origem, df_destino):
     #Retornar o df que vai para o segundo 
     return df_destino[['id', 'nome', 'sobrenome', 'email', 'senha', 'cargo', 'setor_id', 'unidade_id']]
 
+    # Ver senha e unidade_id
