@@ -35,9 +35,9 @@ def transformar_dados_funcionario(df_origem, df_destino):
 
     df_destino['cargo'] = df_origem['cargo'].apply(corrigir_cargo)
 
-    df_destino['setor_id'] = df_origem['setor_id'].astype(int)
+    df_destino['setor_id'] = df_origem['id_setor'].astype(int)
 
-    df_destino['unidade_id'] = df_origem['unidade_id'].astype(int)
+    df_destino['unidade_id'] = df_origem['id_unidade'].astype(int)
     
     #Retornar o df que vai para o segundo 
     return df_destino[['id', 'nome', 'sobrenome', 'email', 'senha', 'cargo', 'setor_id', 'unidade_id']]
