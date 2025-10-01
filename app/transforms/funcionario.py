@@ -1,45 +1,51 @@
 import pandas as pd
 
-def transformar_dados_funcionario(df_origem, df_destino):
-    "Essa função irá receber o dataframe do banco de dados do primeiro e transformar os dados para o banco de dados do segundo"
 
-    #Tranformações dos dados
-    df_destino['id'] = df_origem['id'].astype(int)
-    
-    df_destino['nome'] = df_origem['nome'].astype(str).str.capitalize()
+def transformar_dados_funcionario(df_origem: pd.DataFrame, df_destino: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforma os dados de funcionários do dataframe de origem para o formato do dataframe de destino.
 
-    df_destino['sobrenome'] = df_origem['sobrenome'].astype(str).str.capitalize()
+    Args:
+        df_origem (pd.DataFrame): DataFrame com os dados originais do banco de dados de origem.
+        df_destino (pd.DataFrame): DataFrame modelo para receber os dados transformados.
 
-    df_destino['email'] = df_origem['email'].astype(str).str.lower()
+    Returns:
+        pd.DataFrame: DataFrame com os dados transformados prontos para inserção no destino.
+    """
 
-    df_destino['senha'] = df_origem['senha'].astype(str).str.lower()
+    # Transformações de dados
+    df_destino["id"] = df_origem["id"].astype(int)
+
+    df_destino["nome"] = df_origem["nome"].astype(str).str.capitalize()
+    df_destino["sobrenome"] = df_origem["sobrenome"].astype(str).str.capitalize()
+
+    df_destino["email"] = df_origem["email"].astype(str).str.lower()
+    df_destino["senha"] = df_origem["senha"].astype(str).str.lower()
 
     cargos_g = [
-        'Gestor', 'gestor', 'GESTOR', 'g', 'G', 'Gestor de Estoque', 'gestor de estoque', 'GESTOR DE ESTOQUE'
+        "gestor", "g", "gestor de estoque"
     ]
 
     cargos_a = [
-        'a', 'A', 'Analista', 'analista', 'ANALISTA', 'Analista de Sistemas', 'analista de sistemas', 'ANALISTA DE SISTEMAS'
+        "analista", "a", "analista de sistemas"
     ]
 
-    def corrigir_cargo(cargo):
-        """Converte qualquer variação em 'G' ou 'A'"""
+    def corrigir_cargo(cargo: str) -> str:
+        """Converte qualquer variação de cargo para 'G' (gestor) ou 'A' (analista)."""
         texto = str(cargo).strip().lower()
 
-        # procura o texto em cada item das listas
         if any(texto == item or texto in item for item in cargos_g):
             return "G"
-
         if any(texto == item or texto in item for item in cargos_a):
             return "A"
+        return None
 
-    df_destino['cargo'] = df_origem['cargo'].apply(corrigir_cargo)
+    df_destino["cargo"] = df_origem["cargo"].apply(corrigir_cargo)
 
-    df_destino['setor_id'] = df_origem['setor_id'].astype(int)
+    df_destino["setor_id"] = df_origem["id_setor"].astype(int)
+    df_destino["unidade_id"] = df_origem["id_unidade"].astype(int)
 
-    df_destino['unidade_id'] = df_origem['unidade_id'].astype(int)
-    
-    #Retornar o df que vai para o segundo 
-    return df_destino[['id', 'nome', 'sobrenome', 'email', 'senha', 'cargo', 'setor_id', 'unidade_id']]
-
-    # Ver senha e unidade_id
+    # Retornar dataframe pronto para o banco de destino
+    return df_destino[
+        ["id", "nome", "sobrenome", "email", "senha", "cargo", "setor_id", "unidade_id"]
+    ]
