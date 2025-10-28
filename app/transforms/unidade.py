@@ -6,66 +6,77 @@ import os
 load_dotenv()
 API_KEY = os.getenv("API_KEY_MAPS")
 
-def pegar_endereco_por_cep(cep, api_key):
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?address={cep}&key={api_key}"
-    response = requests.get(url)
-    if response.status_code != 200:
-        return {}
-    dados = response.json()
-    if dados['status'] != 'OK':
-        return {}
-    
-    resultado = dados['results'][0]
-    componentes = resultado['address_components']
-    endereco = {}
-    for comp in componentes:
-        tipos = comp['types']
-        if 'route' in tipos:
-            endereco['rua'] = comp['long_name']
-        elif 'sublocality_level_1' in tipos or 'neighborhood' in tipos:
-            endereco['bairro'] = comp['long_name']
-        elif 'locality' in tipos:
-            endereco['cidade'] = comp['long_name']
-        elif 'administrative_area_level_1' in tipos:
-            # ####### Garantindo que sempre seja apenas a sigla em maiúsculas
-            endereco['estado'] = comp['short_name'].upper()
-    
-    # ####### Caso não tenha estado, coloca um default (opcional)
-    if 'estado' not in endereco:
-        endereco['estado'] = 'SP'
-    
-    return endereco
+class UnidadeRPA:
+    """Classe para transformar dados de unidades do banco de origem para o padrão do banco de destino."""
 
-def transformar_dados_unidade(df_origem, df_endereco, df_destino) -> pd.DataFrame:
-    siglas_validas = ['AC','AL','AP','AM','BA','CE','ES','DF','MA','MT','MS','MG','PA','PB',
-                      'PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO','GO']  ####### lista de siglas
+    SIGLAS_VALIDAS = ['AC','AL','AP','AM','BA','CE','ES','DF','MA','MT','MS','MG','PA','PB',
+                      'PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO','GO']
 
-    # Inicializa colunas
-    df_destino['id'] = df_origem['id'].astype(int)
-    df_destino['nome'] = df_origem['nome'].astype(str).str.title()
-    df_destino['cep'] = ''
-    df_destino['rua'] = ''
-    df_destino['bairro'] = ''
-    df_destino['cidade'] = ''
-    df_destino['estado'] = ''
-    df_destino['numero'] = ''
-    df_destino['industria_id'] = df_origem['empresa_id'].astype(int)
+    def __init__(self, api_key: str = API_KEY):
+        self.api_key = api_key
+        self.cep_cache = {}
 
-    for idx, row in df_origem.iterrows():
-        endereco_row = df_endereco[df_endereco['id'] == row['id_endereco']].iloc[0]
-        cep = str(endereco_row['cep']).replace('-', '')[:8]  ####### garante 8 caracteres
-        numero = str(endereco_row['numero'])
-        endereco_completo = pegar_endereco_por_cep(cep, API_KEY)
+    def pegar_endereco_por_cep(self, cep: str) -> dict:
+        """Consulta a API do Google Maps e retorna o endereço com ruas, bairro, cidade e estado."""
+        cep = str(cep).replace('-', '')[:8]
 
-        # Preenchimento com defaults
-        df_destino.at[idx, 'cep'] = cep
-        df_destino.at[idx, 'numero'] = numero
-        df_destino.at[idx, 'rua'] = endereco_completo.get('rua', 'Rua não informada')[:50]  ####### max 50 chars
-        df_destino.at[idx, 'bairro'] = endereco_completo.get('bairro', 'Bairro não informado')[:50] ####### max 50 chars
-        df_destino.at[idx, 'cidade'] = endereco_completo.get('cidade', 'Cidade não informada')[:50] ####### max 50 chars
-        estado = endereco_completo.get('estado', 'SP').upper()  ####### default SP se vazio
-        if estado not in siglas_validas:
-            estado = 'SP'  ####### corrige caso não seja válido
-        df_destino.at[idx, 'estado'] = estado
+        # Verifica cache
+        if cep in self.cep_cache:
+            return self.cep_cache[cep]
 
-    return df_destino[['id','nome','cep','rua','bairro','cidade','estado','numero','industria_id']]
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={cep}&key={self.api_key}"
+        response = requests.get(url)
+        endereco = {}
+
+        if response.status_code == 200:
+            dados = response.json()
+            if dados.get('status') == 'OK' and dados.get('results'):
+                resultado = dados['results'][0]
+                for comp in resultado.get('address_components', []):
+                    tipos = comp.get('types', [])
+                    if 'route' in tipos:
+                        endereco['rua'] = comp.get('long_name', '')
+                    elif 'sublocality_level_1' in tipos or 'neighborhood' in tipos:
+                        endereco['bairro'] = comp.get('long_name', '')
+                    elif 'locality' in tipos:
+                        endereco['cidade'] = comp.get('long_name', '')
+                    elif 'administrative_area_level_1' in tipos:
+                        endereco['estado'] = comp.get('short_name', '').upper()
+
+        # Valores padrão se faltar informação
+        endereco.setdefault('rua', 'Rua não informada')
+        endereco.setdefault('bairro', 'Bairro não informado')
+        endereco.setdefault('cidade', 'Cidade não informada')
+        estado = endereco.get('estado', 'SP').upper()
+        endereco['estado'] = estado if estado in self.SIGLAS_VALIDAS else 'SP'
+
+        # Salva no cache
+        self.cep_cache[cep] = endereco
+        return endereco
+
+    def transformar(self, df_origem: pd.DataFrame) -> pd.DataFrame:
+        """Transforma o dataframe de unidades do novo banco de origem para o padrão do banco de destino."""
+        df_destino = pd.DataFrame()
+        df_destino['id'] = df_origem['id'].astype(int)
+        df_destino['nome'] = df_origem['nome'].astype(str).str.title().str[:50]
+        df_destino['email'] = df_origem['email'].astype(str).str.lower().str[:50]
+        df_destino['industria_id'] = df_origem['id_empresa'].astype(int)
+
+        # Inicializa colunas de endereço
+        for col in ['cep','rua','bairro','cidade','estado','numero']:
+            df_destino[col] = ''
+
+        for idx, row in df_origem.iterrows():
+            cep = str(row['endereco_cep']).replace('-', '')[:8]
+            numero = str(row['endereco_numero'])
+            endereco_api = self.pegar_endereco_por_cep(cep)
+
+            df_destino.at[idx, 'cep'] = cep
+            df_destino.at[idx, 'numero'] = numero
+            df_destino.at[idx, 'rua'] = endereco_api.get('rua')[:50]
+            df_destino.at[idx, 'bairro'] = endereco_api.get('bairro')[:50]
+            df_destino.at[idx, 'cidade'] = endereco_api.get('cidade')[:50]
+            df_destino.at[idx, 'estado'] = endereco_api.get('estado')
+
+        # Reordena colunas para coincidir com o destino
+        return df_destino[['id','nome','email','cep','rua','bairro','cidade','estado','numero','industria_id']]

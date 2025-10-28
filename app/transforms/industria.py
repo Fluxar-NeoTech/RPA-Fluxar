@@ -11,8 +11,8 @@ def transformar_dados_industria(df_origem, df_destino) -> pd.DataFrame:
 
     df_destino['email'] = df_origem['email'].astype(str).str.capitalize()
 
-    df_destino["data_cadastro"] = pd.to_datetime(df_origem["data_cadastro"], errors="coerce")
+    df_destino['data_cadastro'] = pd.to_datetime(
+        df_origem['dt_cadastro'], errors='coerce'
+    ).fillna(pd.Timestamp.now())  # ou pd.Timestamp("2000-01-01")
 
     return df_destino[['id','nome','cnpj','email','data_cadastro']]
-
-# data_cadastro
