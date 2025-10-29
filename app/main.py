@@ -176,19 +176,19 @@ def main():
 
         for _, row in df_transformado_funcionario.iterrows():
             cursor.execute(insert_sql_funcionario, (
-                row['id'],                # mantém o id original da origem
+                row['id'],                
                 row['nome'][:100],
                 row['sobrenome'][:100],
                 row['email'][:100],
                 row['senha'][:260],
                 row['cargo'],
-                None,                     # foto_perfil não vem da origem
+                None,                    
                 row['setor_id'],
                 row['unidade_id']
             ))
 
         conn_destino.commit()
-        print("Funcionários OK ✅")
+        print("Funcionários OK ")
     except Exception as e:
         print("Erro ao inserir dados no banco de destino (Funcionario):", e)
         conn_destino.rollback()
